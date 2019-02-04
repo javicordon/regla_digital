@@ -299,11 +299,11 @@ static void arctan(uint16_t si, uint16_t co, int cont,uint16_t* pos_1b,int32_t* 
     //DEBUGOUT("%f\r\n", result);
 
     //printf(" Sin:%i\r\n Cos:%i\r\n ArcTan:%i\r\n",seno,coseno,res);
-    printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
+    //printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
     *pos_1b=pos_1;
 
     /* Delay */
-    vTaskDelay((cont)/portTICK_RATE_MS);
+    //vTaskDelay((cont)/portTICK_RATE_MS);
 }
 
 
