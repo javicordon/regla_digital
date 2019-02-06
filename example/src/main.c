@@ -23,6 +23,18 @@ uint32_t DMAbuffer;
 #define PI_2 1.570796325
 #define PI2 6.2831853
 
+/*****************************************************************************
+ * Private types/enumerations/variables for I2C
+ ****************************************************************************/
+
+#define SPEED_100KHZ            (100000)
+#define SPEED_1MHZ            (1000000)
+#define ACTIVITY_MASK           (0x003FFFFF)
+
+#define I2C_ADDR_7BIT                  (0x40)
+#define I2C_REG_ADDR_7BIT              (0x03)
+
+static I2CM_XFER_T  i2cmXferRec;
 
 /*****************************************************************************
  * Semaphores Definition
@@ -35,7 +47,85 @@ uint32_t DMAbuffer;
 xQueueHandle Time;
 
 /*****************************************************************************
- * Private functions
+ * Private functions I2C
+ ****************************************************************************/
+
+/* Toggle LED to show code activity */
+static int ShowActivity(int activityCount)
+{
+	/* Test for time to update LEDs */
+	if ((++activityCount & ACTIVITY_MASK) == 0) {
+		/* Toggle 1st LED */
+		Board_LED_Toggle(0);
+
+		/* Reset activity counter */
+		activityCount = 0;
+	}
+
+	/* Return new activity count */
+	return activityCount;
+}
+
+/* Initialize the I2C bus */
+static void i2c_app_init(I2C_ID_T id, int speed)
+{
+	Board_I2C_Init(id);
+
+	/* Initialize I2C */
+	Chip_I2C_Init(id);
+	//Debo llamar la siguiente funcion por ser velocidad superior a 400kHz de I2C
+	Board_I2C_EnableFastPlus(id);
+	Chip_I2C_SetClockRate(id, speed);
+}
+
+/* Function to setup and execute I2C transfer request */
+static void SetupXferRecAndExecute(uint8_t devAddr,
+								   uint8_t *txBuffPtr,
+								   uint16_t txSize,
+								   uint8_t *rxBuffPtr,
+								   uint16_t rxSize)
+{
+	/* Setup I2C transfer record */
+	i2cmXferRec.slaveAddr = devAddr;
+	i2cmXferRec.options = 0;
+	i2cmXferRec.status = 0;
+	i2cmXferRec.txSz = txSize;
+	i2cmXferRec.rxSz = rxSize;
+	i2cmXferRec.txBuff = txBuffPtr;
+	i2cmXferRec.rxBuff = rxBuffPtr;
+	Chip_I2CM_XferBlocking(LPC_I2C0, &i2cmXferRec);
+}
+
+/* Perform I2CM write on target board */
+static void WriteBoard_I2CM(int writeVal)
+{
+	uint8_t tx_buffer[3];
+
+	/* set configuration to default value */
+	tx_buffer[0] = 0x00; /* Write to Config register */
+	tx_buffer[1] = 0x39;
+	tx_buffer[2] = 0x9F;
+	//SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
+	SetupXferRecAndExecute(0XFF, tx_buffer, 3, NULL, 0);
+
+}
+
+/* Perform I2CM read on target board */
+static void ReadBoard_I2CM()
+{
+	uint8_t tx_buffer[3];
+	uint8_t rx_buffer[3];
+
+	tx_buffer[0] = I2C_REG_ADDR_7BIT; /* Read the Voltage across the shunt */
+	rx_buffer[0] = 0;
+	rx_buffer[1] = 0;
+	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 1, rx_buffer, 2);
+	//DEBUGOUT("Voltage Reading across shunt: 0x%02X%02X\r\n", rx_buffer[0], rx_buffer[1]);
+
+}
+
+/*****************************************************************************
+ * Private functions ADC
  ****************************************************************************/
 
 /* Sets up system hardware */
@@ -119,20 +209,16 @@ static void App_print_ADC_value(uint16_t si, uint16_t co, int cont,uint16_t* pos
     if(si>*promed&&co>*promed) {
         pos_1=0;
         *med5f=res;
-        if(res<-1) *med5f=res+180000;
     }
     if(si>*promed&&co<=*promed) {
         pos_1=1;
-        if(res<-1) *med5f=res+180000;
     }
     if(si<=*promed&&co<=*promed) {
         pos_1=2;
         *med5f=res+180000;
-        if(res<-1) *med5f=res+360000;
     }
     if(si<=*promed&&co>*promed) {
         pos_1=3;
-        *med5f=res+360000;
     }
 
     if((*pos_1b==3)&&(pos_1==0)) {
@@ -299,11 +385,11 @@ static void arctan(uint16_t si, uint16_t co, int cont,uint16_t* pos_1b,int32_t* 
     //DEBUGOUT("%f\r\n", result);
 
     //printf(" Sin:%i\r\n Cos:%i\r\n ArcTan:%i\r\n",seno,coseno,res);
-    //printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
+    printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
     *pos_1b=pos_1;
 
     /* Delay */
-    //vTaskDelay((cont)/portTICK_RATE_MS);
+    vTaskDelay((cont)/portTICK_RATE_MS);
 }
 
 
@@ -408,6 +494,53 @@ Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
         }
 }
 
+/*****************************************************************************
+ * Public functions I2C
+ ****************************************************************************/
+
+/**
+ * @brief	Main program body
+ * @return	int
+ */
+int i2cm_task(void)
+{
+	int tmp = 0;
+	int activityIndex = 0;
+	int writeVal = 0;
+
+	SystemCoreClockUpdate();
+	Board_Init();
+	//i2c_app_init(I2C0, SPEED_100KHZ);
+	i2c_app_init(I2C0, SPEED_1MHZ);
+
+	/* Loop forever */
+	while (1) {
+
+		WriteBoard_I2CM(writeVal++ & 1);
+
+
+		/* Toggle LED to show activity. */
+		//tmp = ShowActivity(tmp);
+
+		/* Test for activity time */
+		//if ((tmp & ACTIVITY_MASK) == 0) {
+			/* Toggle between writes and reads */
+		//	switch (activityIndex++ & 1) {
+		//	case 0:
+				/* Perform target board I2CM write */
+		//		WriteBoard_I2CM(writeVal++ & 1);
+		//		break;
+
+		//	case 1:
+		//	default:
+				/* Perform target board I2CM read */
+				//ReadBoard_I2CM();
+		//		break;
+		//	}
+		//}
+
+	}
+}
 
 
 /**
@@ -437,8 +570,8 @@ int main(void)
     //xTaskCreate(vLectorTEC1, "vLectorTEC1", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), (TaskHandle_t *) NULL);
     //xTaskCreate(adc_tec, "adc_tec", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
 
-    xTaskCreate(adc_task, "adc_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
-
+    //xTaskCreate(adc_task, "adc_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
+    xTaskCreate(i2cm_task, "i2cm_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
     /* Start the scheduler */
     vTaskStartScheduler();
 
