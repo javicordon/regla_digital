@@ -16,76 +16,49 @@
 #define _ADC_CHANNLE1 ADC_CH1
 #define _GPDMA_CONN_ADC GPDMA_CONN_ADC_0
 static ADC_CLOCK_SETUP_T ADCSetup;
-static volatile uint8_t Burst_Mode_Flag = 0, Sample_Time_sec = 10;
-static volatile uint8_t channelTC, dmaChannelNum;
 uint32_t DMAbuffer;
 #define PI 3.14159265
 #define PI_2 1.570796325
 #define PI2 6.2831853
 
 /*****************************************************************************
- * Private types/enumerations/variables for I2C
+ * Definiciones/Enumeracion/Variables Privadas para I2C
  ****************************************************************************/
-
-#define SPEED_100KHZ            (100000)
-#define SPEED_1MHZ            (1000000)
-#define ACTIVITY_MASK           (0x003FFFFF)
-
+#define ACTIVO_I2C			(1)	//1 es SI, y 0 es NO en caso no se necesite enviar por I2C. Lo que da 42uS disponibles entre muestreo.
+#define SPEED_100KHZ        (100000)
+#define SPEED_1MHZ          (1000000)
 #define I2C_ADDR_7BIT                  (0x64)
-#define I2C_REG_ADDR_7BIT              (0x03)
-
 static I2CM_XFER_T  i2cmXferRec;
 
-/*****************************************************************************
- * Semaphores Definition
- ****************************************************************************/
-//xSemaphoreHandle SEM1, SEM2;
+//Union para enviar unicamente los 3 bytes menos significativos por medio del I2C.
+typedef union {
+  int32_t    	int_var;
+  char  	chx4[4];
+} COMBO;
 
 /*****************************************************************************
- * Queue Definition
+ * Funciones I2C
  ****************************************************************************/
-xQueueHandle Time;
-
-/*****************************************************************************
- * Private functions I2C
- ****************************************************************************/
-
-/* Toggle LED to show code activity */
-static int ShowActivity(int activityCount)
-{
-	/* Test for time to update LEDs */
-	if ((++activityCount & ACTIVITY_MASK) == 0) {
-		/* Toggle 1st LED */
-		Board_LED_Toggle(0);
-
-		/* Reset activity counter */
-		activityCount = 0;
-	}
-
-	/* Return new activity count */
-	return activityCount;
-}
-
-/* Initialize the I2C bus */
+/* Inicializo el Bus I2C */
 static void i2c_app_init(I2C_ID_T id, int speed)
 {
 	Board_I2C_Init(id);
-
-	/* Initialize I2C */
+	/* Iniciar I2C */
 	Chip_I2C_Init(id);
-	//Debo llamar la siguiente funcion por ser velocidad superior a 400kHz de I2C
+	//Debo llamar la siguiente funcion por elegir un clock rate superior a 400kHz de I2C
 	Board_I2C_EnableFastPlus(id);
+	//Inicio el clock
 	Chip_I2C_SetClockRate(id, speed);
 }
 
-/* Function to setup and execute I2C transfer request */
+/* Funcion para configurar y ejecutar tranascion del I2C */
 static void SetupXferRecAndExecute(uint8_t devAddr,
 								   uint8_t *txBuffPtr,
 								   uint16_t txSize,
 								   uint8_t *rxBuffPtr,
 								   uint16_t rxSize)
 {
-	/* Setup I2C transfer record */
+	/* Configurar la transferencia I2C */
 	i2cmXferRec.slaveAddr = devAddr;
 	i2cmXferRec.options = 0;
 	i2cmXferRec.status = 0;
@@ -96,68 +69,26 @@ static void SetupXferRecAndExecute(uint8_t devAddr,
 	Chip_I2CM_XferBlocking(LPC_I2C0, &i2cmXferRec);
 }
 
-/* Perform I2CM write on target board */
-static void WriteBoard_I2CM(int writeVal)
-{
-	uint8_t tx_buffer[3];
-
-	/* set configuration to default value */
-	tx_buffer[0] = 0x00; /* Write to Config register */
-	tx_buffer[1] = 0x39;
-	tx_buffer[2] = 0x9F;
-	//SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
-	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
-
-}
-
-typedef union {
-  int32_t    	int_var;
-  char  	chx4[4];
-} COMBO;
-
-
-
-/* Perform I2CM write on target board */
+/* Funcion para enviar datos procesados en CIAA por medio de I2C */
 static void i2c_write(int32_t writeVal)
 {
 	COMBO   var1;
-	//var1.int_var=1052946;
 	uint8_t tx_buffer[4];
-	uint32_t tx_buffer32;
-	//tx_buffer[0] = (writeVal&0XFFFFFF);
-	tx_buffer32 = 1052946;
-	/* set configuration to default value */
-	//tx_buffer[0] = 0x00; /* Write to Config register */
-	//tx_buffer[1] = 0x39;
-	//tx_buffer[2] = 0x9F;
 	var1.int_var=writeVal;
+	/*Selecciono unicamente los 3 bits menos significativos 2^24 = 16Mn
+	 * necesito 1000 mm o 1Mn de um como medida total absoluta que podra medir la regla.
+	 * De este modo el valor de salida sera la posicion del sensor de la regla.
+	 */
 	tx_buffer[2] = var1.chx4[0];
 	tx_buffer[1] = var1.chx4[1];
 	tx_buffer[0] = var1.chx4[2];
+	//Envio los datos.
 	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
-	//SetupXferRecAndExecute(I2C_ADDR_7BIT, (uint8_t)* &tx_buffer[0], 3, NULL, 0);
-
-}
-
-/* Perform I2CM read on target board */
-static void ReadBoard_I2CM()
-{
-	uint8_t tx_buffer[3];
-	uint8_t rx_buffer[3];
-
-	tx_buffer[0] = I2C_REG_ADDR_7BIT; /* Read the Voltage across the shunt */
-	rx_buffer[0] = 0;
-	rx_buffer[1] = 0;
-	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 1, rx_buffer, 2);
-	//DEBUGOUT("Voltage Reading across shunt: 0x%02X%02X\r\n", rx_buffer[0], rx_buffer[1]);
-
 }
 
 /*****************************************************************************
- * Private functions ADC
+ * Configuracion de Hardware
  ****************************************************************************/
-
-/* Sets up system hardware */
 static void prvSetupHardware(void)
 {
     SystemCoreClockUpdate();
@@ -204,84 +135,36 @@ static void prvSetupHardware(void)
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,1,11,FALSE); //LED 2
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,1,12,FALSE); //LED 3
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
-
 }
 
 /*****************************************************************************
- * Public functions
+ * Funciones ADC
  ****************************************************************************/
-/* Print ADC value and delay */
-static void App_print_ADC_value(uint16_t si, uint16_t co, int cont,uint16_t* pos_1b,int32_t* pos_2,uint16_t* promed,int32_t* med5f,int32_t* med5)
+/*Configuro el ADC*/
+static void prvSetupADC(void)
 {
-    //Imprime valor ADC de 0 a 1023 niveles por los 10 bit
-    //DEBUGOUT("%04d\r\n", data);
-    //Realiza la conversion de niveles a 3.3V
+	// Variable para fijar la velocidad de muestreo de los ADC
+	uint32_t _bitRate = 400000;
 
-    float_t tan_yx;
-    float_t y, x, resf;
-    int32_t res,seno,coseno,tantan, pos_1;
-    y=si-*promed;
-    seno=y;
-    //y=y/512;
-    x=co-*promed;
-    coseno=x;
-    //x=co/512;
-    //if(x==0) x=1;
-    tan_yx=y/x;
-
-    resf= atan(tan_yx)*180000/PI;//Uso 180 000, en vez de 180, para incluir los decimales en entero
-    tantan=tan_yx*1000;
-    res=resf;
-
-
-
-    if(si>*promed&&co>*promed) {
-        pos_1=0;
-        *med5f=res;
-    }
-    if(si>*promed&&co<=*promed) {
-        pos_1=1;
-    }
-    if(si<=*promed&&co<=*promed) {
-        pos_1=2;
-        *med5f=res+180000;
-    }
-    if(si<=*promed&&co>*promed) {
-        pos_1=3;
-    }
-
-    if((*pos_1b==3)&&(pos_1==0)) {
-        *pos_2=*pos_2+1;
-        *pos_1b=pos_1;
-    };
-    if((*pos_1b==0)&&(pos_1==3)) {
-        *pos_2=*pos_2-1;
-        *pos_1b=pos_1;
-    };
-
-    *med5f=(*med5f)*5000/360000;
-
-    if(*pos_2>=0) *med5=*pos_2*5000+*med5f;
-        else *med5=*pos_2*5000+*med5f-5000;
-
-
-    //result = 2*3.1415;
-    //result = cos(1.5708);
-    //result=data*3.3/1023;
-    //DEBUGOUT("%04d\r\n", result);
-    //DEBUGOUT("%f\r\n", result);
-
-    //printf(" Sin:%i\r\n Cos:%i\r\n ArcTan:%i\r\n",seno,coseno,res);
-    printf("%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\r\n",seno,coseno,res,tantan,pos_1,*pos_2,*promed,*med5f,*med5);
-    *pos_1b=pos_1;
-
-    /* Delay */
-    vTaskDelay((cont)/portTICK_RATE_MS);
+	//ADC 0
+	Chip_ADC_Init(_LPC_ADC_ID0, &ADCSetup);
+	Chip_ADC_SetSampleRate(_LPC_ADC_ID0, &ADCSetup, _bitRate);
+	Chip_ADC_EnableChannel(_LPC_ADC_ID0, _ADC_CHANNLE0, ENABLE);
+	//ADC 1
+	Chip_ADC_Init(_LPC_ADC_ID1, &ADCSetup);
+	Chip_ADC_SetSampleRate(_LPC_ADC_ID1, &ADCSetup, _bitRate);
+	Chip_ADC_EnableChannel(_LPC_ADC_ID1, _ADC_CHANNLE1, ENABLE);
 }
 
+/*****************************************************************************
+ * Funciones Publicas
+ ****************************************************************************/
 
-// Aproximacion polinomial de arcotangente entre -1,1.
-// Error maximo < 0.005 (o 0.29 grados)
+/*
+ * Aproximacion polinomial de arcotangente cuando el valor esta dentro de [-1,1]
+ * Error maximo < 0.005 (o 0.29 grados).
+ * Esta aproximacion unicamente mide angulos en cuadrante I y III
+ */
 float ApproxAtan(float z)
 {
     const float n1 = 0.97239411f;
@@ -289,6 +172,11 @@ float ApproxAtan(float z)
     return (n1 + n2 * z * z) * z;
 }
 
+/*
+ * Calculo de Arcotangente utilizando aproximacion polinomial considerando todos los
+ * cuadrantes I,II,II,IV. El metodo a implementar es el de arctan2.
+ * Fuente: https://en.wikipedia.org/wiki/Atan2
+ */
 float ApproxAtan2(float y, float x)
 {
     if (x != 0.0f)
@@ -312,7 +200,7 @@ float ApproxAtan2(float y, float x)
                 return ApproxAtan(z) - PI;
             }
         }
-        else // Use property atan(y/x) = PI/2 - atan(x/y) if |y/x| > 1.
+        else // Uso de propiedad trigonometrica atan(y/x) = PI/2 - atan(x/y) if |y/x| > 1.
         {
             const float z = x / y;
             if (y > 0.0)
@@ -338,61 +226,50 @@ float ApproxAtan2(float y, float x)
             return -PI_2;
         }
     }
-    return 0.0f; // x,y = 0. Could return NaN instead.
+    return 0.0f; // x,y = 0
 }
 
-static void arctan(uint16_t si, uint16_t co, int cont,uint16_t* pos_1b,int32_t* pos_2,uint16_t* promed,int32_t* med5f,int32_t* med5)
+static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uint16_t* promed,int32_t* med5f,int32_t* med5)
 {
-    //Imprime valor ADC de 0 a 1023 niveles por los 10 bit
-    //DEBUGOUT("%04d\r\n", data);
-    //Realiza la conversion de niveles a 3.3V
-
-    float tan_yx;
-    float y, x, res, resf,tantan;
-    int32_t seno,coseno, pos_1;
-    seno=y;
+    float y, x, res;
+    int32_t pos_1;
     y=si-*promed;
-    //seno=y;
-    //y=y/512;
     x=co-*promed;
-    coseno=x;
-    //x=co/512;
-    //if(x==0) x=1;
-    tan_yx=y/x;
 
 //Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8
-    //res= atan(tan_yx)*180000/PI;//Uso 180 000, en vez de 180, para incluir los decimales en entero
-	//res= atan2(y,x)*180000/PI;//Uso 180 000, en vez de 180, para incluir los decimales en entero
-	//res = 0.9724*tan_yx-0.1919*tan_yx*tan_yx*tan_yx;
     res = ApproxAtan2(y,x);
+    //En vez de cuantificar el arcTangente entre +/- PI, se cuantifica de 0 a 2PI
     (res<0)?res+=PI2:res;
-    res = res*180000/PI;
+    res = res*180000/PI; //Conversion de radianes a grados por mil para tener mejor resolucion
 
 //Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
 
-    //tantan=tan_yx*1000;
-    //res=resf;
-
+    /*
+     * Identifico en que cuadrante me encuentro I,II,III, IV
+     * segun el valor de ADC (Seno y Coseno)
+     */
     if(si>*promed&&co>*promed) {
         pos_1=0;
-        //*med5f=res;
-        //if(res<-1) *med5f=res+180000;
     }
     if(si>*promed&&co<=*promed) {
         pos_1=1;
-        //if(res<-1) *med5f=res+180000;
     }
     if(si<=*promed&&co<=*promed) {
         pos_1=2;
-        //*med5f=res+180000;
-        //if(res<-1) *med5f=res+360000;
     }
     if(si<=*promed&&co>*promed) {
         pos_1=3;
-        //*med5f=res+360000;
     }
 
-
+    /*
+     * Verifico si realizo un cambio de cuadrante de IV a I o de IV a I
+     * para poder sumar un periodo a la medicion (5mm de periodo entre polos
+     * magneticos de la regla digital como periodo)
+     * pos_2 registra el cuadrante actual acumulado y pos_1b el cuadrante del ciclo anterior.
+     * 	Es decir, pos_2 mide el periodo de 5mm en cuatro, teniendo una resolucion de 1.25mm
+     * 	sin necesidad del calculo del arc-tan. Arc-tan nos podra dar una resolucion de 8um sin
+     * 	el uso de i2c o de 50um con uso de i2c. El error estadistico maximo de la regla es 100um.
+     */
     if((*pos_1b==3)&&(pos_1==0)) {
         *pos_2=*pos_2+1;
         *pos_1b=pos_1;
@@ -401,106 +278,35 @@ static void arctan(uint16_t si, uint16_t co, int cont,uint16_t* pos_1b,int32_t* 
         *pos_2=*pos_2-1;
         *pos_1b=pos_1;
     };
-
-    //*med5f=(*med5f)*5000/360000;
     *med5f=res*5000/360000;
 
     if(*pos_2>=0) *med5=*pos_2*5000+*med5f;
         else *med5=*pos_2*5000+*med5f-5000;
 
-    //result = 2*3.1415;
-    //result = cos(1.5708);
-    //result=data*3.3/1023;
-    //DEBUGOUT("%04d\r\n", result);
-    //DEBUGOUT("%f\r\n", result);
-
     //printf(" Sin:%i\r\n Cos:%i\r\n ArcTan:%i\r\n",seno,coseno,res);
     //printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
-    //int32_t prueba = y;
-    int32_t writeVal = si;
-    //WriteBoard_I2CM(writeVal++ & 1);
+#ifdef ACTIVO_I2C
+    //Envio por I2C el valor de la posicion calculado. A un SLAVE con direccion 0X64
     i2c_write(si);
-    *pos_1b=pos_1;
+#endif
+
+    *pos_1b=pos_1; //Registro de posicion del cuadrante anterior
 
     /* Delay */
     //vTaskDelay(1000/portTICK_RATE_MS);
-    //vTaskDelay((cont)/portTICK_RATE_MS);
 }
 
-
-static void vLectorTEC1(void *pvParameters) {
-    int count=0,cont=500;
-
-    while (1) {
-        //Verifica si la tecla 1 es presionada
-        if (Chip_GPIO_GetPinState(LPC_GPIO_PORT,0,4)==FALSE){
-            if(count==1){
-                //Al terminar el tiempo de muestreo apaga el LED 3 Verde
-             Chip_GPIO_SetPinState(LPC_GPIO_PORT,1,12,FALSE); //LED 3
-             count=0;
-
-            } else {
-            //Al presionar la tecla 1 se preden LED 3 Verde
-             Chip_GPIO_SetPinState(LPC_GPIO_PORT,1,12,TRUE); //LED 3
-             count+=1;
-            }
-             vTaskDelay(300/portTICK_RATE_MS);
-        }
-           xQueueSendToBack(Time,&count,portMAX_DELAY);
-           vTaskDelay(100/portTICK_RATE_MS);
-           //Libera cola Time
-           xQueueReceive (Time,&count,portMAX_DELAY);
-    }
-}
-static void adc_tec(void *pvParameters) {
-    int cont=5, count=0, max=511,min=511;
-    uint16_t dataADC0,dataADC1;
-    int32_t* med5 = (int32_t*)calloc(1, sizeof(int32_t));
-    int32_t* med5f = (int32_t*)calloc(1, sizeof(int32_t));
-    uint32_t* medq5 = (uint32_t*)calloc(1, sizeof(uint32_t));
-    uint16_t* pos_1b = (uint16_t*)calloc(1, sizeof(uint16_t));
-    uint16_t* promed = (uint16_t*)calloc(1, sizeof(uint16_t));
-        while (1) {
-            //Verifico si hay algo en cola de Time pero no lo libero
-            xQueuePeek (Time,&count,portMAX_DELAY);
-            //Si envie 1 fue porque active TEC1
-            /* Empiezo conversion A/D solo si no hay modo Burst */
-            if (!Burst_Mode_Flag) {
-                Chip_ADC_SetStartMode(_LPC_ADC_ID0, ADC_START_NOW, ADC_TRIGGERMODE_RISING);
-                Chip_ADC_SetStartMode(_LPC_ADC_ID1, ADC_START_NOW, ADC_TRIGGERMODE_RISING);
-            }
-            if (count==1){
-                //Empiezo conversion A/D mientras estoy con TEC 1 Activa
-
-                    /* Espera de conversion A/D */
-                    while (Chip_ADC_ReadStatus(_LPC_ADC_ID0, _ADC_CHANNLE0, ADC_DR_DONE_STAT) != SET &&Chip_ADC_ReadStatus(_LPC_ADC_ID1, _ADC_CHANNLE1, ADC_DR_DONE_STAT) != SET) {}
-                    /* Leo valor ADC */
-                    Chip_ADC_ReadValue(_LPC_ADC_ID0, _ADC_CHANNLE0, &dataADC0);
-                    /* Leo valor ADC */
-                    Chip_ADC_ReadValue(_LPC_ADC_ID1, _ADC_CHANNLE1, &dataADC1);
-                    /* Imprimo valor ADC */
-                    if(dataADC0>max) max=dataADC0;
-                    if(dataADC0<min) min=dataADC0;
-                    *promed=max+min;
-                    *promed=(*promed)/2;
-                    App_print_ADC_value(dataADC0,dataADC1, 5,pos_1b,medq5,promed,med5f,med5);
-
-            }
-            //Si envie 0 no he presionado TEC1, no hago nada.
-            if (count==0){
-            	vTaskDelay(10/portTICK_RATE_MS);
-            }
-
-            //vTaskDelay(10/portTICK_RATE_MS);
-        }
-}
-
+/*
+ * Tarea principal para muestreo de dos senales por dos ADC de CIAA,
+ *  posterior calculo del arco-tangente de las senales y eventual envio
+ *  por I2C de ser necesario.
+ */
 static void adc_task(void *pvParameters) {
-    int cont=5, count=0, max=511,min=511;
+    int max=511,min=511;
     uint16_t dataADC0,dataADC1;
     int32_t* med5 = (int32_t*)calloc(1, sizeof(int32_t));
     int32_t* med5f = (int32_t*)calloc(1, sizeof(int32_t));
-    uint32_t* medq5 = (uint32_t*)calloc(1, sizeof(uint32_t));
+    int32_t* medq5 = (int32_t*)calloc(1, sizeof(int32_t));
     uint16_t* pos_1b = (uint16_t*)calloc(1, sizeof(uint16_t));
     uint16_t* promed = (uint16_t*)calloc(1, sizeof(uint16_t));
     //Init I2C
@@ -515,108 +321,36 @@ static void adc_task(void *pvParameters) {
 			Chip_ADC_SetStartMode(_LPC_ADC_ID1, ADC_START_NOW, ADC_TRIGGERMODE_RISING);
 
 			//Empiezo conversion A/D
-Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8
+Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8 Para medir Tiempo efectivo entre muestras (frecuencia de muestreo efectiva)
 			/* Espera de conversion A/D */
 			while (Chip_ADC_ReadStatus(_LPC_ADC_ID0, _ADC_CHANNLE0, ADC_DR_DONE_STAT) != SET &&Chip_ADC_ReadStatus(_LPC_ADC_ID1, _ADC_CHANNLE1, ADC_DR_DONE_STAT) != SET) {}
-			/* Leo valor ADC */
+			/* Leo valor ADC 0*/
 			Chip_ADC_ReadValue(_LPC_ADC_ID0, _ADC_CHANNLE0, &dataADC0);
-			/* Leo valor ADC */
+			/* Leo valor ADC 1*/
 			Chip_ADC_ReadValue(_LPC_ADC_ID1, _ADC_CHANNLE1, &dataADC1);
 
-
-			/* Imprimo valor ADC */
+			/* Calculo el valor medio de la senal como autocalibracion y calculo de arctan de las senales */
 			if(dataADC0>max) max=dataADC0;
 			if(dataADC0<min) min=dataADC0;
 			*promed=max+min;
 			*promed=(*promed)/2;
-			arctan(dataADC0,dataADC1, 5,pos_1b,medq5,promed,med5f,med5);
+			arctan(dataADC0,dataADC1, pos_1b,medq5,promed,med5f,med5);
 Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
             //vTaskDelay(5/portTICK_RATE_MS);
         }
 }
 
 /*****************************************************************************
- * Public functions I2C
+ * Main principal
  ****************************************************************************/
-
-/**
- * @brief	Main program body
- * @return	int
- */
-int i2cm_task(void)
-{
-	int tmp = 0;
-	int activityIndex = 0;
-	int writeVal = 0;
-
-	SystemCoreClockUpdate();
-	Board_Init();
-	//i2c_app_init(I2C0, SPEED_100KHZ);
-	i2c_app_init(I2C0, SPEED_1MHZ);
-
-	/* Loop forever */
-	while (1) {
-
-		WriteBoard_I2CM(writeVal++ & 1);
-		vTaskDelay(1000/portTICK_RATE_MS);
-
-
-		/* Toggle LED to show activity. */
-		//tmp = ShowActivity(tmp);
-
-		/* Test for activity time */
-		//if ((tmp & ACTIVITY_MASK) == 0) {
-			/* Toggle between writes and reads */
-		//	switch (activityIndex++ & 1) {
-		//	case 0:
-				/* Perform target board I2CM write */
-		//		WriteBoard_I2CM(writeVal++ & 1);
-		//		break;
-
-		//	case 1:
-		//	default:
-				/* Perform target board I2CM read */
-				//ReadBoard_I2CM();
-		//		break;
-		//	}
-		//}
-
-	}
-}
-
-
-/**
- * @
- */
 int main(void)
 {
-    uint32_t _bitRate = 400000; // Variable para fijar la velocidad de muestreo
-
-
-    prvSetupHardware();
-    Chip_ADC_Init(_LPC_ADC_ID0, &ADCSetup);
-    Chip_ADC_SetSampleRate(_LPC_ADC_ID0, &ADCSetup, _bitRate);
-    Chip_ADC_EnableChannel(_LPC_ADC_ID0, _ADC_CHANNLE0, ENABLE);
-
-    Chip_ADC_Init(_LPC_ADC_ID1, &ADCSetup);
-    Chip_ADC_SetSampleRate(_LPC_ADC_ID1, &ADCSetup, _bitRate);
-    Chip_ADC_EnableChannel(_LPC_ADC_ID1, _ADC_CHANNLE1, ENABLE);
-
-    /*Queue creation*/
-    Time = xQueueCreate (1,sizeof (unsigned int));
-
-
-    /* TASK creation xTaskCreate (Puntero, String descriptivo, Tamaño del Stack, parámetros de la función void* es puntero) */
-    //de cualquier cosa que hay que castear, prioridad.
-
-    //xTaskCreate(vLectorTEC1, "vLectorTEC1", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), (TaskHandle_t *) NULL);
-    //xTaskCreate(adc_tec, "adc_tec", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
+	prvSetupHardware();
+	prvSetupADC();
 
     xTaskCreate(adc_task, "adc_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
-    //xTaskCreate(i2cm_task, "i2cm_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
-    /* Start the scheduler */
+    /* Inicio scheduler */
     vTaskStartScheduler();
 
-    /* Should never arrive here */
     return 1;
 }
