@@ -31,7 +31,7 @@ uint32_t DMAbuffer;
 #define SPEED_1MHZ            (1000000)
 #define ACTIVITY_MASK           (0x003FFFFF)
 
-#define I2C_ADDR_7BIT                  (0x40)
+#define I2C_ADDR_7BIT                  (0x64)
 #define I2C_REG_ADDR_7BIT              (0x03)
 
 static I2CM_XFER_T  i2cmXferRec;
@@ -106,7 +106,36 @@ static void WriteBoard_I2CM(int writeVal)
 	tx_buffer[1] = 0x39;
 	tx_buffer[2] = 0x9F;
 	//SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
-	SetupXferRecAndExecute(0XFF, tx_buffer, 3, NULL, 0);
+	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
+
+}
+
+typedef union {
+  int32_t    	int_var;
+  char  	chx4[4];
+} COMBO;
+
+
+
+/* Perform I2CM write on target board */
+static void i2c_write(int32_t writeVal)
+{
+	COMBO   var1;
+	//var1.int_var=1052946;
+	uint8_t tx_buffer[4];
+	uint32_t tx_buffer32;
+	//tx_buffer[0] = (writeVal&0XFFFFFF);
+	tx_buffer32 = 1052946;
+	/* set configuration to default value */
+	//tx_buffer[0] = 0x00; /* Write to Config register */
+	//tx_buffer[1] = 0x39;
+	//tx_buffer[2] = 0x9F;
+	var1.int_var=writeVal;
+	tx_buffer[2] = var1.chx4[0];
+	tx_buffer[1] = var1.chx4[1];
+	tx_buffer[0] = var1.chx4[2];
+	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
+	//SetupXferRecAndExecute(I2C_ADDR_7BIT, (uint8_t)* &tx_buffer[0], 3, NULL, 0);
 
 }
 
@@ -321,8 +350,9 @@ static void arctan(uint16_t si, uint16_t co, int cont,uint16_t* pos_1b,int32_t* 
     float tan_yx;
     float y, x, res, resf,tantan;
     int32_t seno,coseno, pos_1;
-    y=si-*promed;
     seno=y;
+    y=si-*promed;
+    //seno=y;
     //y=y/512;
     x=co-*promed;
     coseno=x;
@@ -385,11 +415,16 @@ static void arctan(uint16_t si, uint16_t co, int cont,uint16_t* pos_1b,int32_t* 
     //DEBUGOUT("%f\r\n", result);
 
     //printf(" Sin:%i\r\n Cos:%i\r\n ArcTan:%i\r\n",seno,coseno,res);
-    printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
+    //printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
+    //int32_t prueba = y;
+    int32_t writeVal = si;
+    //WriteBoard_I2CM(writeVal++ & 1);
+    i2c_write(si);
     *pos_1b=pos_1;
 
     /* Delay */
-    vTaskDelay((cont)/portTICK_RATE_MS);
+    //vTaskDelay(1000/portTICK_RATE_MS);
+    //vTaskDelay((cont)/portTICK_RATE_MS);
 }
 
 
@@ -468,6 +503,12 @@ static void adc_task(void *pvParameters) {
     uint32_t* medq5 = (uint32_t*)calloc(1, sizeof(uint32_t));
     uint16_t* pos_1b = (uint16_t*)calloc(1, sizeof(uint16_t));
     uint16_t* promed = (uint16_t*)calloc(1, sizeof(uint16_t));
+    //Init I2C
+	SystemCoreClockUpdate();
+	Board_Init();
+	//i2c_app_init(I2C0, SPEED_100KHZ);
+	i2c_app_init(I2C0, SPEED_1MHZ);
+
         while (1) {
             /* Empiezo conversion A/D solo si no hay modo Burst */
 			Chip_ADC_SetStartMode(_LPC_ADC_ID0, ADC_START_NOW, ADC_TRIGGERMODE_RISING);
@@ -490,7 +531,7 @@ Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8
 			*promed=(*promed)/2;
 			arctan(dataADC0,dataADC1, 5,pos_1b,medq5,promed,med5f,med5);
 Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
-            //vTaskDelay(10/portTICK_RATE_MS);
+            //vTaskDelay(5/portTICK_RATE_MS);
         }
 }
 
@@ -517,6 +558,7 @@ int i2cm_task(void)
 	while (1) {
 
 		WriteBoard_I2CM(writeVal++ & 1);
+		vTaskDelay(1000/portTICK_RATE_MS);
 
 
 		/* Toggle LED to show activity. */
@@ -570,8 +612,8 @@ int main(void)
     //xTaskCreate(vLectorTEC1, "vLectorTEC1", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), (TaskHandle_t *) NULL);
     //xTaskCreate(adc_tec, "adc_tec", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
 
-    //xTaskCreate(adc_task, "adc_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
-    xTaskCreate(i2cm_task, "i2cm_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
+    xTaskCreate(adc_task, "adc_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
+    //xTaskCreate(i2cm_task, "i2cm_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
     /* Start the scheduler */
     vTaskStartScheduler();
 
