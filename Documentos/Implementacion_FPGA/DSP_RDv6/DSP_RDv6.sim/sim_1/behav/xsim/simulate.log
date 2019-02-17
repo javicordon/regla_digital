@@ -1,0 +1,32 @@
+Vivado Simulator 2018.2
+Time resolution is 1 ps
+Hello
+Hello
+analog Data File Error : Time value 170300.000000 is invalid in the input file for XADC instance blinky_TestBench.my_xadc_dsp.xadc_dual.inst. Time value should increase.
+
+***** XADC Simulation analog Data File Format *****
+
+NAME: design.txt or user file name passed with parameter/generic SIM_MONITOR_FILE
+
+FORMAT: First line is header line. Valid column name are: TIME TEMP VCCINT VCCAUX VCCBRAM VCCPINT VCCPAUX VCCDDRO VP VN VAUXP[0] VAUXN[0] ..... 
+
+TIME must be in first column.
+
+Time value need to be integer in ns scale.
+
+analog value need to be real and must contain a decimal point '.' ,  e.g. 0.0, 3.0
+
+Each line including header line can not have extra space after the last character/digit.
+
+Each data line must have same number of columns as the header line.
+
+Comment line start with -- or //
+
+Example:
+
+TIME TEMP VCCINT  VP VN VAUXP[0] VAUXN[0]
+
+000  125.6  1.0  0.7  0.4  0.3  0.6
+
+200  25.6   0.8  0.5  0.3  0.8  0.2
+

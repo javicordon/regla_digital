@@ -1,0 +1,405 @@
+
+*** Running vivado
+    with args -log main0.vds -m64 -product Vivado -mode batch -messageDb vivado.pb -notrace -source main0.tcl
+
+
+****** Vivado v2018.2 (64-bit)
+  **** SW Build 2258646 on Thu Jun 14 20:03:12 MDT 2018
+  **** IP Build 2256618 on Thu Jun 14 22:10:49 MDT 2018
+    ** Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
+
+source main0.tcl -notrace
+Command: synth_design -top main0 -part xc7s50csga324-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7s50'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7s50'
+INFO: Launching helper process for spawning children vivado processes
+INFO: Helper process launched with PID 3928 
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:03 ; elapsed = 00:00:04 . Memory (MB): peak = 365.930 ; gain = 95.953
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'main0' [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/main0.v:23]
+INFO: [Synth 8-6157] synthesizing module 'blinky' [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/blinky.v:22]
+INFO: [Synth 8-6155] done synthesizing module 'blinky' (1#1) [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/blinky.v:22]
+INFO: [Synth 8-6157] synthesizing module 'XADC_DSP' [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/XADC_DSP.v:23]
+	Parameter init_read bound to: 8'b00000000 
+	Parameter read_waitdrdy bound to: 8'b00000001 
+	Parameter write_waitdrdy bound to: 8'b00000010 
+	Parameter read_reg00 bound to: 8'b00000011 
+	Parameter reg00_waitdrdy bound to: 8'b00000100 
+	Parameter read_reg01 bound to: 8'b00000101 
+	Parameter reg01_waitdrdy bound to: 8'b00000110 
+INFO: [Synth 8-155] case statement is not full and has no default [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/XADC_DSP.v:84]
+INFO: [Synth 8-6157] synthesizing module 'xadc_dsp' [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.runs/synth_1/.Xil/Vivado-332-JAVIERCORDOBFBB/realtime/xadc_dsp_stub.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'xadc_dsp' (2#1) [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.runs/synth_1/.Xil/Vivado-332-JAVIERCORDOBFBB/realtime/xadc_dsp_stub.v:5]
+WARNING: [Synth 8-3848] Net CHANNEL in module/entity XADC_DSP does not have driver. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/XADC_DSP.v:32]
+INFO: [Synth 8-6155] done synthesizing module 'XADC_DSP' (3#1) [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/XADC_DSP.v:23]
+WARNING: [Synth 8-350] instance 'xadc_dsp_m' of module 'XADC_DSP' requires 17 connections, but only 12 given [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/main0.v:36]
+INFO: [Synth 8-6155] done synthesizing module 'main0' (4#1) [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/main0.v:23]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port CHANNEL[4]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port CHANNEL[3]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port CHANNEL[2]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port CHANNEL[1]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port CHANNEL[0]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[15]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[14]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[13]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[12]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[11]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[10]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[9]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[8]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[7]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[6]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[5]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[4]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[3]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[2]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[1]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXP[0]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[15]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[14]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[13]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[12]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[11]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[10]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[9]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[8]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[7]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[6]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[5]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[4]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[3]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[2]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[1]
+WARNING: [Synth 8-3331] design XADC_DSP has unconnected port VAUXN[0]
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:04 ; elapsed = 00:00:05 . Memory (MB): peak = 417.539 ; gain = 147.563
+---------------------------------------------------------------------------------
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:04 ; elapsed = 00:00:05 . Memory (MB): peak = 417.539 ; gain = 147.563
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:04 ; elapsed = 00:00:05 . Memory (MB): peak = 417.539 ; gain = 147.563
+---------------------------------------------------------------------------------
+INFO: [Device 21-403] Loading part xc7s50csga324-1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [c:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/ip/xadc_dsp_1/xadc_dsp/xadc_dsp_in_context.xdc] for cell 'xadc_dsp_m/xadc_dual'
+Finished Parsing XDC File [c:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/ip/xadc_dsp_1/xadc_dsp/xadc_dsp_in_context.xdc] for cell 'xadc_dsp_m/xadc_dual'
+Parsing XDC File [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc]
+WARNING: [Vivado 12-584] No ports matched 'vaux0_p'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:127]
+WARNING: [Vivado 12-584] No ports matched 'vaux0_n'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:128]
+WARNING: [Vivado 12-584] No ports matched 'vaux2_p'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:133]
+WARNING: [Vivado 12-584] No ports matched 'vaux2_n'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:134]
+WARNING: [Vivado 12-584] No ports matched 'vaux10_p'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:135]
+WARNING: [Vivado 12-584] No ports matched 'vaux10_n'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:136]
+WARNING: [Vivado 12-584] No ports matched 'vaux11_p'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:137]
+WARNING: [Vivado 12-584] No ports matched 'vaux11_n'. [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc:138]
+Finished Parsing XDC File [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc]
+WARNING: [Project 1-498] One or more constraints failed evaluation while reading constraint file [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc] and the design contains unresolved black boxes. These constraints will be read post-synthesis (as long as their source constraint file is marked as used_in_implementation) and should be applied correctly then. You should review the constraints listed in the file [.Xil/main0_propImpl.xdc] and check the run log file to verify that these constraints were correctly applied.
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/constrs_1/imports/digilent-xdc-master/Arty-S7-50-Rev-B-Master.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/main0_propImpl.xdc].
+Resolution: To avoid this warning, move constraints listed in [.Xil/main0_propImpl.xdc] to another XDC file and exclude this new file from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
+Completed Processing XDC Constraints
+
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.004 . Memory (MB): peak = 728.633 ; gain = 0.000
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 728.633 ; gain = 458.656
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7s50csga324-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 728.633 ; gain = 458.656
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+Applied set_property DONT_TOUCH = true for xadc_dsp_m/xadc_dual. (constraint file  auto generated constraint, line ).
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 728.633 ; gain = 458.656
+---------------------------------------------------------------------------------
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'XADC_DSP'
+INFO: [Synth 8-5546] ROM "state" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "done" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5544] ROM "state" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "state" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "state" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "state" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+               init_read |                              000 |                         00000000
+           read_waitdrdy |                              001 |                         00000001
+          write_waitdrdy |                              010 |                         00000010
+              read_reg00 |                              011 |                         00000011
+          reg00_waitdrdy |                              100 |                         00000100
+              read_reg01 |                              101 |                         00000101
+          reg01_waitdrdy |                              110 |                         00000110
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'sequential' in module 'XADC_DSP'
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 728.633 ; gain = 458.656
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Registers : 
+	               16 Bit    Registers := 3     
+	                7 Bit    Registers := 1     
+	                2 Bit    Registers := 2     
+	                1 Bit    Registers := 3     
++---Muxes : 
+	   7 Input      7 Bit        Muxes := 1     
+	   7 Input      3 Bit        Muxes := 1     
+	   2 Input      3 Bit        Muxes := 4     
+	   2 Input      2 Bit        Muxes := 2     
+	   7 Input      2 Bit        Muxes := 2     
+	   2 Input      1 Bit        Muxes := 3     
+	   7 Input      1 Bit        Muxes := 10    
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Hierarchical Component Statistics 
+---------------------------------------------------------------------------------
+Hierarchical RTL Component report 
+Module blinky 
+Detailed RTL Component Info : 
++---Registers : 
+	                1 Bit    Registers := 1     
+Module XADC_DSP 
+Detailed RTL Component Info : 
++---Registers : 
+	               16 Bit    Registers := 3     
+	                7 Bit    Registers := 1     
+	                2 Bit    Registers := 2     
+	                1 Bit    Registers := 2     
++---Muxes : 
+	   7 Input      7 Bit        Muxes := 1     
+	   7 Input      3 Bit        Muxes := 1     
+	   2 Input      3 Bit        Muxes := 4     
+	   2 Input      2 Bit        Muxes := 2     
+	   7 Input      2 Bit        Muxes := 2     
+	   2 Input      1 Bit        Muxes := 3     
+	   7 Input      1 Bit        Muxes := 10    
+---------------------------------------------------------------------------------
+Finished RTL Hierarchical Component Statistics
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 120 (col length:60)
+BRAMs: 150 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+Warning: Parallel synthesis criteria is not met 
+WARNING: [Synth 8-6014] Unused sequential element xadc_dsp_m/MEASURED_A_reg was removed.  [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/XADC_DSP.v:121]
+WARNING: [Synth 8-6014] Unused sequential element xadc_dsp_m/MEASURED_B_reg was removed.  [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/XADC_DSP.v:136]
+WARNING: [Synth 8-6014] Unused sequential element xadc_dsp_m/done_reg was removed.  [C:/Users/zoticus/DSP_RDv6/DSP_RDv6.srcs/sources_1/new/XADC_DSP.v:62]
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:19 ; elapsed = 00:00:21 . Memory (MB): peak = 728.633 ; gain = 458.656
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:31 ; elapsed = 00:00:34 . Memory (MB): peak = 740.207 ; gain = 470.230
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:31 ; elapsed = 00:00:34 . Memory (MB): peak = 740.285 ; gain = 470.309
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/daddr_reg[5]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/daddr_reg[2]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/daddr_reg[1]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/daddr_reg[0]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[14]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[13]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[12]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[11]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[10]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[9]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[8]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[7]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[6]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[5]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[4]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[3]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[2]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[1]) is unused and will be removed from module main0.
+WARNING: [Synth 8-3332] Sequential element (xadc_dsp_m/di_drp_reg[0]) is unused and will be removed from module main0.
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:31 ; elapsed = 00:00:34 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++------+--------------+----------+
+|      |BlackBox name |Instances |
++------+--------------+----------+
+|1     |xadc_dsp      |         1|
++------+--------------+----------+
+
+Report Cell Usage: 
++------+---------+------+
+|      |Cell     |Count |
++------+---------+------+
+|1     |xadc_dsp |     1|
+|2     |BUFG     |     1|
+|3     |CARRY4   |     7|
+|4     |LUT1     |     1|
+|5     |LUT2     |     1|
+|6     |LUT4     |     6|
+|7     |LUT5     |     6|
+|8     |LUT6     |     5|
+|9     |FDRE     |    38|
+|10    |IBUF     |     8|
+|11    |OBUF     |     2|
++------+---------+------+
+
+Report Instance Areas: 
++------+-------------+---------+------+
+|      |Instance     |Module   |Cells |
++------+-------------+---------+------+
+|1     |top          |         |   101|
+|2     |  blinky_m   |blinky   |    34|
+|3     |  xadc_dsp_m |XADC_DSP |    56|
++------+-------------+---------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 22 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:20 ; elapsed = 00:00:26 . Memory (MB): peak = 750.770 ; gain = 169.699
+Synthesis Optimization Complete : Time (s): cpu = 00:00:33 ; elapsed = 00:00:36 . Memory (MB): peak = 750.770 ; gain = 480.793
+INFO: [Project 1-571] Translating synthesized netlist
+INFO: [Netlist 29-17] Analyzing 15 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+INFO: [Common 17-83] Releasing license: Synthesis
+29 Infos, 70 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:35 ; elapsed = 00:00:38 . Memory (MB): peak = 759.891 ; gain = 500.117
+WARNING: [Constraints 18-5210] No constraint will be written out.
+INFO: [Common 17-1381] The checkpoint 'C:/Users/zoticus/DSP_RDv6/DSP_RDv6.runs/synth_1/main0.dcp' has been generated.
+INFO: [runtcl-4] Executing : report_utilization -file main0_utilization_synth.rpt -pb main0_utilization_synth.pb
+report_utilization: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.036 . Memory (MB): peak = 759.891 ; gain = 0.000
+INFO: [Common 17-206] Exiting Vivado at Sat Sep 29 15:31:10 2018...

@@ -1,0 +1,2 @@
+xadc_dsp.v,verilog,xil_defaultlib,../../../../DSP_RDv6.srcs/sources_1/ip/xadc_dsp_1/xadc_dsp.v,
+glbl.v,Verilog,xil_defaultlib,glbl.v

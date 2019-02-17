@@ -1,0 +1,19 @@
+Vivado Simulator 2018.2
+Copyright 1986-1999, 2001-2018 Xilinx, Inc. All Rights Reserved.
+Running: C:/Xilinx/Vivado/2018.2/bin/unwrapped/win64.o/xelab.exe -wto 2b32467d1da343e38cc3e9729ccc8170 --incr --debug typical --relax --mt 2 -L xil_defaultlib -L unisims_ver -L secureip --snapshot blinky_func_synth xil_defaultlib.blinky xil_defaultlib.glbl -log elaborate.log 
+Using 2 slave threads.
+Starting static elaboration
+Completed static elaboration
+Starting simulation data flow analysis
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling module unisims_ver.BUFG
+Compiling module unisims_ver.IBUF
+Compiling module unisims_ver.x_lut1_mux2
+Compiling module unisims_ver.LUT1
+Compiling module unisims_ver.FDRE_default
+Compiling module unisims_ver.CARRY4
+Compiling module unisims_ver.OBUF
+Compiling module xil_defaultlib.blinky
+Compiling module xil_defaultlib.glbl
+Built simulation snapshot blinky_func_synth
