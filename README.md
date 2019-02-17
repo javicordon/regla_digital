@@ -31,4 +31,10 @@ En nuestro experimento con la regla digital se encuentra lejos de obtener esta
 resolución teórica. La velocidad de desplazamiento máximo de la regla es de 1m/s.
 
 debido al muestreo de dos entradas no síncronas (primero muestrea señal A y luego
-  señal B) Además de los tiempos que le toma al programa en procesar la
+  señal B) Además de los tiempos que le toma al programa en procesar la señal adquirida.
+  
+La presente solución es capaz de obtener la muestra, procesarla y enviarla por el 
+protocolo I2C cada 50ms. 
+
+Si se utiliza la solución propuesta en el mismo hardware a modo de no ser necesaria
+ la comunicación I2C. El tiempo de muestreo y procesamiento es de 8ms.
