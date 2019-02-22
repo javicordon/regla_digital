@@ -32,7 +32,7 @@ static I2CM_XFER_T  i2cmXferRec;
 
 //Union para enviar unicamente los 3 bytes menos significativos por medio del I2C.
 typedef union {
-  int32_t    	int_var;
+  long int    	int_var;
   char  	chx4[4];
 } COMBO;
 
@@ -70,10 +70,10 @@ static void SetupXferRecAndExecute(uint8_t devAddr,
 }
 
 /* Funcion para enviar datos procesados en CIAA por medio de I2C */
-static void i2c_write(int32_t writeVal)
+static void i2c_write(long int writeVal)
 {
 	COMBO   var1;
-	uint8_t tx_buffer[4];
+	unsigned char tx_buffer[4];
 	var1.int_var=writeVal;
 	/*Selecciono unicamente los 3 bits menos significativos 2^24 = 16Mn
 	 * necesito 1000 mm o 1Mn de um como medida total absoluta que podra medir la regla.
@@ -84,6 +84,22 @@ static void i2c_write(int32_t writeVal)
 	tx_buffer[0] = var1.chx4[2];
 	//Envio los datos.
 	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
+}
+/*DUMMY Funcion para enviar datos procesados en CIAA por medio de I2C */
+static void i2c_dummy(long int writeVal)
+{
+	COMBO   var1;
+	unsigned char tx_buffer[4];
+	var1.int_var=writeVal;
+	/*Selecciono unicamente los 3 bits menos significativos 2^24 = 16Mn
+	 * necesito 1000 mm o 1Mn de um como medida total absoluta que podra medir la regla.
+	 * De este modo el valor de salida sera la posicion del sensor de la regla.
+	 */
+	tx_buffer[2] = var1.chx4[0];
+	tx_buffer[1] = var1.chx4[1];
+	tx_buffer[0] = var1.chx4[2];
+	//Envio los datos. A otra direccion, no quiero leerlo, solo que tenga los tiempos esperados
+	SetupXferRecAndExecute(0X33, tx_buffer, 3, NULL, 0);
 }
 
 /*****************************************************************************
@@ -238,6 +254,7 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
 
 //Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8
     res = ApproxAtan2(y,x);
+    //res= atan2(y,x);
     //En vez de cuantificar el arcTangente entre +/- PI, se cuantifica de 0 a 2PI
     (res<0)?res+=PI2:res;
     res = res*180000/PI; //Conversion de radianes a grados por mil para tener mejor resolucion
@@ -287,15 +304,18 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
     //printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
 #ifdef ACTIVO_I2C
     //Envio por I2C el valor de la posicion calculado. A un SLAVE con direccion 0X64
-    i2c_write(si);
+    //i2c_write(si);
+    i2c_write(*med5);
+    //i2c_dummy(*med5);
+    //vTaskDelay(1/portTICK_RATE_MS);
 #endif
 
     *pos_1b=pos_1; //Registro de posicion del cuadrante anterior
 
     /* Delay */
-    //vTaskDelay(1000/portTICK_RATE_MS);
+    //vTaskDelay(10/portTICK_RATE_MS);
 }
-
+#define BUFF (512)
 /*
  * Tarea principal para muestreo de dos senales por dos ADC de CIAA,
  *  posterior calculo del arco-tangente de las senales y eventual envio
@@ -304,7 +324,11 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
 static void adc_task(void *pvParameters) {
     int max=511,min=511;
     uint16_t dataADC0,dataADC1;
+    int32_t dummy=0;
     int32_t* med5 = (int32_t*)calloc(1, sizeof(int32_t));
+    int32_t* pos_abs = (int32_t*)calloc(BUFF, sizeof(int32_t));
+    int32_t* sin_mem = (int32_t*)calloc(BUFF, sizeof(int32_t));
+    int32_t* cos_mem = (int32_t*)calloc(BUFF, sizeof(int32_t));
     int32_t* med5f = (int32_t*)calloc(1, sizeof(int32_t));
     int32_t* medq5 = (int32_t*)calloc(1, sizeof(int32_t));
     uint16_t* pos_1b = (uint16_t*)calloc(1, sizeof(uint16_t));
@@ -314,6 +338,7 @@ static void adc_task(void *pvParameters) {
 	Board_Init();
 	//i2c_app_init(I2C0, SPEED_100KHZ);
 	i2c_app_init(I2C0, SPEED_1MHZ);
+	int cortar = 0;
 
         while (1) {
             /* Empiezo conversion A/D solo si no hay modo Burst */
@@ -335,8 +360,47 @@ Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8 Para medir Tiempo efecti
 			*promed=max+min;
 			*promed=(*promed)/2;
 			arctan(dataADC0,dataADC1, pos_1b,medq5,promed,med5f,med5);
+			pos_abs[cortar]=*med5;
+			sin_mem[cortar]=dataADC0;
+			cos_mem[cortar]=dataADC1;
 Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
-            //vTaskDelay(5/portTICK_RATE_MS);
+            //vTaskDelay(100/portTICK_RATE_MS);
+
+			//Imprimir datos guardados en memoria
+/*
+			if(cortar++>=BUFF){
+				for(long int i = 0; i<BUFF;i++){
+					//printf("%i\n",pos_abs[i]);
+					i2c_write(pos_abs[i]);
+					//i2c_write(i);
+					//printf("%i ",i);
+					vTaskDelay(1/portTICK_RATE_MS);
+				}
+				vTaskDelay(1000/portTICK_RATE_MS);
+				for(int i = 0; i<BUFF;i++){
+					//printf("%i\n",cos_mem[i]);
+					//vTaskDelay(10/portTICK_RATE_MS);
+					i2c_write(cos_mem[i]);
+					//i2c_write(i);
+					vTaskDelay(1/portTICK_RATE_MS);
+				}
+				vTaskDelay(1000/portTICK_RATE_MS);
+				for(int i = 0; i<BUFF;i++){
+					//printf("%i\n",sin_mem[i]);
+					//vTaskDelay(10/portTICK_RATE_MS);
+					i2c_write(sin_mem[i]);
+					//i2c_write(i);
+					vTaskDelay(1/portTICK_RATE_MS);
+				}
+
+
+				//printf("\n\n");
+				vTaskDelay(1000/portTICK_RATE_MS);
+				cortar=0;
+				//vTaskDelete(NULL);
+			}
+*/
+
         }
 }
 
