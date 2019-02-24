@@ -3,6 +3,7 @@
  */
 
 #include "board.h"
+#include "chip.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
@@ -22,12 +23,18 @@ uint32_t DMAbuffer;
 #define PI2 6.2831853
 
 /*****************************************************************************
+ * Definicion de colas
+ ****************************************************************************/
+//xQueueHandle MedAbs;
+//xQueueHandle MedRel;
+
+/*****************************************************************************
  * Definiciones/Enumeracion/Variables Privadas para I2C
  ****************************************************************************/
 #define ACTIVO_I2C			(1)	//1 es SI, y 0 es NO en caso no se necesite enviar por I2C. Lo que da 42uS disponibles entre muestreo.
 #define SPEED_100KHZ        (100000)
 #define SPEED_1MHZ          (1000000)
-#define I2C_ADDR_7BIT                  (0x64)
+#define I2C_ADDR_7BIT                  (0x64) //Direccion del Esclavo para el I2C
 static I2CM_XFER_T  i2cmXferRec;
 
 //Union para enviar unicamente los 3 bytes menos significativos por medio del I2C.
@@ -37,6 +44,12 @@ typedef union {
 } COMBO;
 
 /*****************************************************************************
+ * Definiciones/Enumeracion/Variables Privadas para Interrupcion
+ ****************************************************************************/
+/*Valores para la configuracion de la Tecla 1 en EDU-CIAA*/
+#define BUTTON_PORT            1
+#define BUTTON_BIT             9
+/*****************************************************************************
  * Funciones I2C
  ****************************************************************************/
 /* Inicializo el Bus I2C */
@@ -45,9 +58,9 @@ static void i2c_app_init(I2C_ID_T id, int speed)
 	Board_I2C_Init(id);
 	/* Iniciar I2C */
 	Chip_I2C_Init(id);
-	//Debo llamar la siguiente funcion por elegir un clock rate superior a 400kHz de I2C
+	/*Debo llamar la siguiente funcion por elegir un clock rate superior a 400kHz de I2C*/
 	Board_I2C_EnableFastPlus(id);
-	//Inicio el clock
+	/*Inicio el clock de I2C*/
 	Chip_I2C_SetClockRate(id, speed);
 }
 
@@ -85,32 +98,17 @@ static void i2c_write(long int writeVal)
 	//Envio los datos.
 	SetupXferRecAndExecute(I2C_ADDR_7BIT, tx_buffer, 3, NULL, 0);
 }
-/*DUMMY Funcion para enviar datos procesados en CIAA por medio de I2C */
-static void i2c_dummy(long int writeVal)
-{
-	COMBO   var1;
-	unsigned char tx_buffer[4];
-	var1.int_var=writeVal;
-	/*Selecciono unicamente los 3 bits menos significativos 2^24 = 16Mn
-	 * necesito 1000 mm o 1Mn de um como medida total absoluta que podra medir la regla.
-	 * De este modo el valor de salida sera la posicion del sensor de la regla.
-	 */
-	tx_buffer[2] = var1.chx4[0];
-	tx_buffer[1] = var1.chx4[1];
-	tx_buffer[0] = var1.chx4[2];
-	//Envio los datos. A otra direccion, no quiero leerlo, solo que tenga los tiempos esperados
-	SetupXferRecAndExecute(0X33, tx_buffer, 3, NULL, 0);
-}
 
 /*****************************************************************************
- * Configuracion de Hardware
+ * Configuracion de Hardware e Interrupciones por Hardware
  ****************************************************************************/
+/*Hardware*/
 static void prvSetupHardware(void)
 {
     SystemCoreClockUpdate();
     Board_Init();
 
-    //Salidas
+    /*Salidas*/
     Chip_SCU_PinMux(2,0,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,4); //RGB R
     Chip_SCU_PinMux(2,1,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,4); //RGB G
     Chip_SCU_PinMux(2,2,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,4); //RGB B
@@ -118,32 +116,32 @@ static void prvSetupHardware(void)
     Chip_SCU_PinMux(2,10,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //LED 1
     Chip_SCU_PinMux(2,11,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //LED 2
     Chip_SCU_PinMux(2,13,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //LED 3
-
+    //Pin para medir el tiempo que tarda muestreo ADC+Proceso Arco-Tangente
     Chip_SCU_PinMux(6,12,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //GPIO 8
 
-    //Entradas
+    /*Entradas*/
     Chip_SCU_PinMux(1,0,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //TEC1
     Chip_SCU_PinMux(1,1,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //TEC2
     Chip_SCU_PinMux(1,2,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //TEC3
     Chip_SCU_PinMux(1,6,SCU_MODE_INACT|SCU_MODE_INBUFF_EN,0); //TEC4
 
-    //MUX Salida
+    /*MUX Salida*/
     Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT,5,0); //RGB R
     Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT,5,1); //RGB G
     Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT,5,2); //RGB B
     Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT,0,14); //LED 1
     Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT,1,11); //LED 2
     Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT,1,12); //LED 3
-
+    //Pin para medir el tiempo que tarda muestreo ADC+Proceso Arco-Tangente
     Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT,2,8); //GPI0 8
 
-    //MUX Entrada
+    /*MUX Entrada*/
     Chip_GPIO_SetPinDIRInput(LPC_GPIO_PORT,0,4); //TEC1
     Chip_GPIO_SetPinDIRInput(LPC_GPIO_PORT,0,8); //TEC2
     Chip_GPIO_SetPinDIRInput(LPC_GPIO_PORT,0,9); //TEC3
     Chip_GPIO_SetPinDIRInput(LPC_GPIO_PORT,1,9); //TEC4
 
-    //Start LED and RGB off
+    /*Inicializo todas las GPIO de salida a valor logico cero*/
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,5,0,FALSE); //RGB R
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,5,1,FALSE); //RGB G
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,5,2,FALSE); //RGB B
@@ -152,6 +150,17 @@ static void prvSetupHardware(void)
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,1,12,FALSE); //LED 3
     Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
 }
+/*Interrupciones por hardware*/
+static void prvSetupInterruptions(void)
+{
+	/* Grupo de interrupciones 0. A ser invocado al presionar una Tecla. */
+	Chip_GPIOGP_SelectLowLevel(LPC_GPIOGROUP, 0, BUTTON_PORT, 1 << BUTTON_BIT);
+	Chip_GPIOGP_EnableGroupPins(LPC_GPIOGROUP, 0, BUTTON_PORT, 1 << BUTTON_BIT);
+	Chip_GPIOGP_SelectAndMode(LPC_GPIOGROUP, 0);
+	Chip_GPIOGP_SelectEdgeMode(LPC_GPIOGROUP, 0);
+	/* Activar el grupo GPIO de Interrupciones 0 */
+	NVIC_EnableIRQ(GINT0_IRQn);
+	}
 
 /*****************************************************************************
  * Funciones ADC
@@ -172,14 +181,39 @@ static void prvSetupADC(void)
 	Chip_ADC_EnableChannel(_LPC_ADC_ID1, _ADC_CHANNLE1, ENABLE);
 }
 
+
+/*****************************************************************************
+ * Funcion para grupo de Interrupcion 0
+ ****************************************************************************/
+void GINT0_IRQHandler(void)
+{
+	Chip_GPIOGP_ClearIntStatus(LPC_GPIOGROUP, 0);
+	//BaseType_t xTaskWokenByReceive = pdFALSE;
+	//int32_t* Medida_Absoluta;
+	//int32_t* Medida_Relativa;
+	//xQueueReceiveFromISR( MedAbs, ( void * ) &Medida_Absoluta, &xTaskWokenByReceive);
+ 	//xQueueReceiveFromISR( MedRel, ( void * ) &Medida_Relativa, &xTaskWokenByReceive);
+	//int32_t test=*Medida_Absoluta-100;
+	//test=*Medida_Relativa;
+	//*Medida_Absoluta=1;
+
+    //Chip_GPIO_SetPinState(LPC_GPIO_PORT,0,14,!Chip_GPIO_GetPinState(LPC_GPIO_PORT,0,14)); //LED 1
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT,0,14,TRUE); //LED 1
+
+}
+
 /*****************************************************************************
  * Funciones Publicas
  ****************************************************************************/
 
 /*
- * Aproximacion polinomial de arcotangente cuando el valor esta dentro de [-1,1]
+ * @brief: Arco-Tangente en cuadrante I y III.
+ * @descr: Aproximacion polinomial de arcotangente cuando el valor z esta dentro de [-1,1]
  * Error maximo < 0.005 (o 0.29 grados).
  * Esta aproximacion unicamente mide angulos en cuadrante I y III
+ * @parametro z: Valor de entrada equivalente a y/x, donde x e y son los dos valores de
+ * 	arco-tangente a calcular.
+ * @salida: Valor de arco tangente cuando corresponde a cuadrantes I y III
  */
 float ApproxAtan(float z)
 {
@@ -189,9 +223,13 @@ float ApproxAtan(float z)
 }
 
 /*
+ * @brief:Calculo de Arco-Tangente.
  * Calculo de Arcotangente utilizando aproximacion polinomial considerando todos los
- * cuadrantes I,II,II,IV. El metodo a implementar es el de arctan2.
+ * cuadrantes I,II,II,IV. El metodo a implementar es el del algoritmo de arctan2.
  * Fuente: https://en.wikipedia.org/wiki/Atan2
+ * @parametros: x e y, son los dos valores de entrada para la funcion arco-tangente a
+ * 	caluclar.
+ * @salida: Valor del arco-tangente
  */
 float ApproxAtan2(float y, float x)
 {
@@ -245,7 +283,7 @@ float ApproxAtan2(float y, float x)
     return 0.0f; // x,y = 0
 }
 
-static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uint16_t* promed,int32_t* med5f,int32_t* med5)
+static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uint16_t* promed,int32_t* med5f,int32_t* med5,int32_t* int_zero, int32_t* tara)
 {
     float y, x, res;
     int32_t pos_1;
@@ -299,6 +337,26 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
 
     if(*pos_2>=0) *med5=*pos_2*5000+*med5f;
         else *med5=*pos_2*5000+*med5f-5000;
+    *med5=(*med5-*tara);
+
+    //xQueueOverwrite(MedAbs,&int_zero);
+    //xQueueOverwrite(MedRel,&med5f);
+    /*
+    if(*int_zero!=0){
+    	*med5=0;
+    	*tara=*med5f;
+    	*int_zero=0;
+    }
+    */
+    if(Chip_GPIO_GetPinState(LPC_GPIO_PORT,0,14)==TRUE){
+    	*med5=0;
+    	*pos_2=0;
+		*tara=*med5f;
+		//*tara=(*med5);
+		*int_zero=0;
+    	Chip_GPIO_SetPinState(LPC_GPIO_PORT,0,14,FALSE);
+    }
+
 
     //printf(" Sin:%i\r\n Cos:%i\r\n ArcTan:%i\r\n",seno,coseno,res);
     //printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
@@ -306,7 +364,6 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
     //Envio por I2C el valor de la posicion calculado. A un SLAVE con direccion 0X64
     //i2c_write(si);
     i2c_write(*med5);
-    //i2c_dummy(*med5);
     //vTaskDelay(1/portTICK_RATE_MS);
 #endif
 
@@ -324,8 +381,9 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
 static void adc_task(void *pvParameters) {
     int max=511,min=511;
     uint16_t dataADC0,dataADC1;
-    int32_t dummy=0;
     int32_t* med5 = (int32_t*)calloc(1, sizeof(int32_t));
+    int32_t* int_zero = (int32_t*)calloc(1, sizeof(int32_t));
+    int32_t* tara = (int32_t*)calloc(1, sizeof(int32_t));
     int32_t* pos_abs = (int32_t*)calloc(BUFF, sizeof(int32_t));
     int32_t* sin_mem = (int32_t*)calloc(BUFF, sizeof(int32_t));
     int32_t* cos_mem = (int32_t*)calloc(BUFF, sizeof(int32_t));
@@ -333,6 +391,7 @@ static void adc_task(void *pvParameters) {
     int32_t* medq5 = (int32_t*)calloc(1, sizeof(int32_t));
     uint16_t* pos_1b = (uint16_t*)calloc(1, sizeof(uint16_t));
     uint16_t* promed = (uint16_t*)calloc(1, sizeof(uint16_t));
+
     //Init I2C
 	SystemCoreClockUpdate();
 	Board_Init();
@@ -359,10 +418,12 @@ Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8 Para medir Tiempo efecti
 			if(dataADC0<min) min=dataADC0;
 			*promed=max+min;
 			*promed=(*promed)/2;
-			arctan(dataADC0,dataADC1, pos_1b,medq5,promed,med5f,med5);
+			arctan(dataADC0,dataADC1, pos_1b,medq5,promed,med5f,med5,int_zero,tara);
 			pos_abs[cortar]=*med5;
 			sin_mem[cortar]=dataADC0;
 			cos_mem[cortar]=dataADC1;
+
+
 Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
             //vTaskDelay(100/portTICK_RATE_MS);
 
@@ -409,8 +470,13 @@ Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,FALSE); //GPIO 8
  ****************************************************************************/
 int main(void)
 {
+	/*Inicializo: funciones que solamente se llaman una vez para configuraciones*/
 	prvSetupHardware();
 	prvSetupADC();
+	prvSetupInterruptions();
+	/*Creo Cola para reiniciar a cero la medicion absoluta medida*/
+ 	//MedAbs = xQueueCreate (1,sizeof (int32_t));
+ 	//MedRel = xQueueCreate (1,sizeof (int32_t));
 
     xTaskCreate(adc_task, "adc_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
     /* Inicio scheduler */
