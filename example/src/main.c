@@ -1,5 +1,11 @@
 /*
- *    JCN Template
+ *    Implementacion de Regla Digital Magnetica con CIAA como DSP
+ *    Por: Javier Cordon Noguera
+ *    Contacto: javiercordon@me.com
+ *    Descripción: Uso de los dos ADC de LPC4337 para muestreo de dos señales, su procesamiento
+ *    	mediante el algoritmo de aproximación polinomica de tercer orden de la función arco-tangente
+ *    	de dos argumentos para, el cálculo de la posición desplazada del sensor.
+ *    	Se incorpora la opción de poder enviar la posición calculada mediante el protocolo I2C.
  */
 
 #include "board.h"
@@ -23,15 +29,9 @@ uint32_t DMAbuffer;
 #define PI2 6.2831853
 
 /*****************************************************************************
- * Definicion de colas
- ****************************************************************************/
-//xQueueHandle MedAbs;
-//xQueueHandle MedRel;
-
-/*****************************************************************************
  * Definiciones/Enumeracion/Variables Privadas para I2C
  ****************************************************************************/
-#define ACTIVO_I2C			(1)	//1 es SI, y 0 es NO en caso no se necesite enviar por I2C. Lo que da 42uS disponibles entre muestreo.
+#define ACTIVO_I2C			(1)	//1 es SI, y 0 es NO, en caso no se necesite enviar por I2C. Lo que da 42uS disponibles entre muestreo.
 #define SPEED_100KHZ        (100000)
 #define SPEED_1MHZ          (1000000)
 #define I2C_ADDR_7BIT                  (0x64) //Direccion del Esclavo para el I2C
@@ -46,9 +46,11 @@ typedef union {
 /*****************************************************************************
  * Definiciones/Enumeracion/Variables Privadas para Interrupcion
  ****************************************************************************/
-/*Valores para la configuracion de la Tecla 1 en EDU-CIAA*/
-#define BUTTON_PORT            1
-#define BUTTON_BIT             9
+/*Valores para la configuracion de la Tecla 1 y 2 en EDU-CIAA*/
+#define BUTTON_PORT1            0
+#define BUTTON_BIT1             4
+#define BUTTON_PORT2            0
+#define BUTTON_BIT2             8
 /*****************************************************************************
  * Funciones I2C
  ****************************************************************************/
@@ -154,12 +156,18 @@ static void prvSetupHardware(void)
 static void prvSetupInterruptions(void)
 {
 	/* Grupo de interrupciones 0. A ser invocado al presionar una Tecla. */
-	Chip_GPIOGP_SelectLowLevel(LPC_GPIOGROUP, 0, BUTTON_PORT, 1 << BUTTON_BIT);
-	Chip_GPIOGP_EnableGroupPins(LPC_GPIOGROUP, 0, BUTTON_PORT, 1 << BUTTON_BIT);
+	Chip_GPIOGP_SelectLowLevel(LPC_GPIOGROUP, 0, BUTTON_PORT1, 1 << BUTTON_BIT1);
+	Chip_GPIOGP_EnableGroupPins(LPC_GPIOGROUP, 0, BUTTON_PORT1, 1 << BUTTON_BIT1);
 	Chip_GPIOGP_SelectAndMode(LPC_GPIOGROUP, 0);
 	Chip_GPIOGP_SelectEdgeMode(LPC_GPIOGROUP, 0);
-	/* Activar el grupo GPIO de Interrupciones 0 */
+	/* Grupo de interrupciones 1. A ser invocado al presionar una Tecla. */
+	Chip_GPIOGP_SelectLowLevel(LPC_GPIOGROUP, 1, BUTTON_PORT2, 1 << BUTTON_BIT2);
+	Chip_GPIOGP_EnableGroupPins(LPC_GPIOGROUP, 1, BUTTON_PORT2, 1 << BUTTON_BIT2);
+	Chip_GPIOGP_SelectAndMode(LPC_GPIOGROUP, 1);
+	Chip_GPIOGP_SelectEdgeMode(LPC_GPIOGROUP, 1);
+	/* Activar el grupo GPIO de Interrupciones */
 	NVIC_EnableIRQ(GINT0_IRQn);
+	NVIC_EnableIRQ(GINT1_IRQn);
 	}
 
 /*****************************************************************************
@@ -188,17 +196,14 @@ static void prvSetupADC(void)
 void GINT0_IRQHandler(void)
 {
 	Chip_GPIOGP_ClearIntStatus(LPC_GPIOGROUP, 0);
-	//BaseType_t xTaskWokenByReceive = pdFALSE;
-	//int32_t* Medida_Absoluta;
-	//int32_t* Medida_Relativa;
-	//xQueueReceiveFromISR( MedAbs, ( void * ) &Medida_Absoluta, &xTaskWokenByReceive);
- 	//xQueueReceiveFromISR( MedRel, ( void * ) &Medida_Relativa, &xTaskWokenByReceive);
-	//int32_t test=*Medida_Absoluta-100;
-	//test=*Medida_Relativa;
-	//*Medida_Absoluta=1;
-
     //Chip_GPIO_SetPinState(LPC_GPIO_PORT,0,14,!Chip_GPIO_GetPinState(LPC_GPIO_PORT,0,14)); //LED 1
 	Chip_GPIO_SetPinState(LPC_GPIO_PORT,0,14,TRUE); //LED 1
+}
+
+void GINT1_IRQHandler(void)
+{
+	Chip_GPIOGP_ClearIntStatus(LPC_GPIOGROUP, 1);
+    Chip_GPIO_SetPinState(LPC_GPIO_PORT,1,11,!Chip_GPIO_GetPinState(LPC_GPIO_PORT,1,11)); //LED 2
 
 }
 
@@ -287,12 +292,15 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
 {
     float y, x, res;
     int32_t pos_1;
+    /*Elimino el bit menos significativo con un impacto de +/- 0.5 um, que lo gano con medicion mas estable*/
+    //y=(si&0XFFFE)-*promed;
+    //x=(co&0XFFFE)-*promed;
     y=si-*promed;
-    x=co-*promed;
+	x=co-*promed;
 
 //Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8
     res = ApproxAtan2(y,x);
-    //res= atan2(y,x);
+    //res= atan2(y,x); //Calculo de atan mediante la libreria nativa de C
     //En vez de cuantificar el arcTangente entre +/- PI, se cuantifica de 0 a 2PI
     (res<0)?res+=PI2:res;
     res = res*180000/PI; //Conversion de radianes a grados por mil para tener mejor resolucion
@@ -339,15 +347,6 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
         else *med5=*pos_2*5000+*med5f-5000;
     *med5=(*med5-*tara);
 
-    //xQueueOverwrite(MedAbs,&int_zero);
-    //xQueueOverwrite(MedRel,&med5f);
-    /*
-    if(*int_zero!=0){
-    	*med5=0;
-    	*tara=*med5f;
-    	*int_zero=0;
-    }
-    */
     if(Chip_GPIO_GetPinState(LPC_GPIO_PORT,0,14)==TRUE){
     	*med5=0;
     	*pos_2=0;
@@ -356,14 +355,17 @@ static void arctan(uint16_t si, uint16_t co, uint16_t* pos_1b,int32_t* pos_2,uin
 		*int_zero=0;
     	Chip_GPIO_SetPinState(LPC_GPIO_PORT,0,14,FALSE);
     }
-
-
-    //printf(" Sin:%i\r\n Cos:%i\r\n ArcTan:%i\r\n",seno,coseno,res);
+    //Para debug se imprime en consola con la CIAA
     //printf("%f\t%f\t%f\t%i\t%i\t%i\t%i\t%i\r\n",y,x,res,pos_1,*pos_2,*promed,*med5f,*med5);
 #ifdef ACTIVO_I2C
     //Envio por I2C el valor de la posicion calculado. A un SLAVE con direccion 0X64
-    //i2c_write(si);
-    i2c_write(*med5);
+   if(Chip_GPIO_GetPinState(LPC_GPIO_PORT,1,11)==TRUE){
+    	//Esta opcion de tecla dos presionada es para fines de debug.
+    	i2c_write(si);
+    } else {
+    	//Por default, se envia por I2C la posición absoluta calculada.
+    	i2c_write(*med5);
+    }
     //vTaskDelay(1/portTICK_RATE_MS);
 #endif
 
@@ -418,6 +420,7 @@ Chip_GPIO_SetPinState(LPC_GPIO_PORT,2,8,TRUE); //GPIO 8 Para medir Tiempo efecti
 			if(dataADC0<min) min=dataADC0;
 			*promed=max+min;
 			*promed=(*promed)/2;
+
 			arctan(dataADC0,dataADC1, pos_1b,medq5,promed,med5f,med5,int_zero,tara);
 			pos_abs[cortar]=*med5;
 			sin_mem[cortar]=dataADC0;
@@ -474,9 +477,6 @@ int main(void)
 	prvSetupHardware();
 	prvSetupADC();
 	prvSetupInterruptions();
-	/*Creo Cola para reiniciar a cero la medicion absoluta medida*/
- 	//MedAbs = xQueueCreate (1,sizeof (int32_t));
- 	//MedRel = xQueueCreate (1,sizeof (int32_t));
 
     xTaskCreate(adc_task, "adc_task", 1024, NULL, (tskIDLE_PRIORITY + 4UL), (TaskHandle_t *) NULL);
     /* Inicio scheduler */
